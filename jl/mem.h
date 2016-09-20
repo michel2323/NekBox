@@ -37,6 +37,7 @@
      extern uint comm_gbl_id, comm_gbl_np;
 #  endif
 #endif
+#include <hbwmalloc.h>
 
 /*--------------------------------------------------------------------------
    Memory Allocation Wrappers to Catch Out-of-memory
@@ -44,7 +45,7 @@
 
 static inline void *smalloc(size_t size, const char *file, unsigned line)
 {
-  void *restrict res = malloc(size);
+  void *restrict res = hbw_malloc(size);
   #if PRINT_MALLOCS
   fprintf(stdout,"MEM: proc %04d: %p = malloc(%ld) @ %s(%u)\n",
           (int)comm_gbl_id,res,(long)size,file,line), fflush(stdout);
@@ -57,7 +58,7 @@ static inline void *smalloc(size_t size, const char *file, unsigned line)
 static inline void *scalloc(
   size_t nmemb, size_t size, const char *file, unsigned line)
 {
-  void *restrict res = calloc(nmemb, size);
+  void *restrict res = hbw_calloc(nmemb, size);
   #if PRINT_MALLOCS
   fprintf(stdout,"MEM: proc %04d: %p = calloc(%ld) @ %s(%u)\n",
           (int)comm_gbl_id,res,(long)size*nmemb,file,line), fflush(stdout);
@@ -71,7 +72,7 @@ static inline void *scalloc(
 static inline void *srealloc(
   void *restrict ptr, size_t size, const char *file, unsigned line)
 {
-  void *restrict res = realloc(ptr, size);
+  void *restrict res = hbw_realloc(ptr, size);
   #if PRINT_MALLOCS
   if(res!=ptr) {
     if(ptr)
@@ -95,15 +96,15 @@ static inline void *srealloc(
 #define trealloc(type, ptr, count) \
   ((type*) srealloc((ptr),(count)*sizeof(type),__FILE__,__LINE__) )
 
-#if PRINT_MALLOCS
 static inline void sfree(void *restrict ptr, const char *file, unsigned line)
 {
-  free(ptr);
+  hbw_free(ptr);
+#if PRINT_MALLOCS
   fprintf(stdout,"MEM: proc %04d: %p freed @ %s(%u)\n",
           (int)comm_gbl_id,ptr,file,line), fflush(stdout);
+#endif
 }
 #define free(x) sfree(x,__FILE__,__LINE__)
-#endif
 
 /*--------------------------------------------------------------------------
    A dynamic array
@@ -132,7 +133,7 @@ static void *array_reserve_(struct array *a, size_t min, size_t size,
   return a->ptr;
 }
 
-#define array_free(a) (free((a)->ptr))
+#define array_free(a) (hbw_free((a)->ptr))
 #define array_init(T,a,max) array_init_(a,max,sizeof(T),__FILE__,__LINE__)
 #define array_resize(T,a,max) array_resize_(a,max,sizeof(T),__FILE__,__LINE__)
 #define array_reserve(T,a,min) array_reserve_(a,min,sizeof(T),__FILE__,__LINE__)
